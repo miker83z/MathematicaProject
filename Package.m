@@ -116,6 +116,59 @@ GraphicalMethodExample[] := (
     Initialization :> (a = 1) 
     ]
    );
+   
+DrawTwoEquationsSystem[] := (
+   Manipulate[
+    
+    With[{p = a x^5 + b x^4 + c x^3 + d x^2 + e x + f, 
+      z = o x^5 + i x^4 + r x^3 + h x^2 + t x + j},
+     	TwoEquationsSystem[dis1, dis2, a, b, c, d, e, f, o, i, r, h, t, 
+      j]],
+    		Style["Prima equazione", Bold, 14],
+    		{dis1, {">", "<", ">=0", "<=0"}},
+    		{{a, 0, "Coefficiente x^5"}, InputField, ImageSize -> Small},
+    		{{b, 0, "Coefficiente x^4"}, InputField, ImageSize -> Small},
+    		{{c, 4, "Coefficiente x^3"}, InputField, ImageSize -> Small},
+    		{{d, 0, "Coefficiente x^2"}, InputField, ImageSize -> Small},
+    		{{e, 0, "Coefficiente x"}, InputField, ImageSize -> Small},
+    		{{f, 0, "Termine noto"}, InputField, ImageSize -> Small},
+    		Style["Seconda equazione", Bold, 14],
+    		{dis2 , {">", "<", ">=0", "<=0"}},
+    		{{o, 0, "Coefficiente x^5"}, InputField, ImageSize -> Small},
+    		{{i, 1, "Coefficiente x^4"}, InputField, ImageSize -> Small},
+    		{{r, 0, "Coefficiente x^3"}, InputField, ImageSize -> Small},
+    		{{h, -9, "Coefficiente x^2"}, InputField, ImageSize -> Small},
+    		{{t, 0, "Coefficiente x"}, InputField, ImageSize -> Small},
+    		{{j, 0, "Termine noto"}, InputField, ImageSize -> Small}]
+);
+
+
+
+TwoEquationsSystem[dis1_, dis2_ , a_, b_, c_, d_, e_, f_, o_, i_, r_, 
+   h_, t_, j_] := (
+   If[dis1 == ">", p = a x^5 + b x^4 + c x^3 + d x^2 + e x + f > 0;];
+   If[dis1 == "<", p = a x^5 + b x^4 + c x^3 + d x^2 + e x + f < 0;];
+   If[dis1 == ">=0", 
+    p = a x^5 + b x^4 + c x^3 + d x^2 + e x + f >= 0;];
+   If[dis1 == "<=0", 
+    p = a x^5 + b x^4 + c x^3 + d x^2 + e x + f <= 0;];
+   If[dis2 == ">", z = o x^5 + i x^4 + r x^3 + h x^2 + t x + j > 0;];
+   If[dis2 == ">=0", 
+    z = o x^5 + i x^4 + r x^3 + h x^2 + t x + j >= 0;];
+   If[dis2 == "<", z = o x^5 + i x^4 + r x^3 + h x^2 + t x + j < 0;];
+   If[dis2 == "<=0", 
+    z = o x^5 + i x^4 + r x^3 + h x^2 + t x + j <= 0;];
+   Show[
+    		Plot[{a x^5 + b x^4 + c x^3 + d x^2 + e x + f, 
+      o x^5 + i x^4 + r x^3 + h x^2 + t x + j}, {x, -20, 20}, 
+     ImageSize -> Large, PlotRange -> {{-20, 20}, {-20, 20}}, 
+     PlotLegends -> Placed[{p , z}, Above]], 
+    		RegionPlot[p, {x, -20, 20}, {y, -20, 20}, ImageSize -> Large],
+    		RegionPlot[z, {x, -20, 20}, {y, -20, 20}, ImageSize -> Large, 
+     PlotStyle -> {Orange, Opacity[0.2]}]
+    	]
+   );
+
 
 
 (* Mostra una retta, con la possibilit\[AGrave] di modificare i parametri della forma implicita *)

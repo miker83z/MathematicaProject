@@ -17,13 +17,13 @@ BeginPackage[ "Progetto`"];
 Unprotect["Progetto`*"] (* toglie temporaneamente la protezione per ridefinire le funzioni *)
 ClearAll["Progetto`*"];
 
-(* Usage prima del Private *)
-
-(* Fase 1 *)
-drawSystem::usage = "disegna un sistema di 2 equazioni (non gestisce casi particolari)";
-
 DrawDis::usage = "ShowLine[] Mostra una retta, con la possibilit\[AGrave] di modificare i parametri della forma implicita";
 GraphicalMethodExample::usage = "Mostra un grafico per una disequazione di secondo grado dove i parametri possono essere modificati";
+MakePolynomial::usage = "Usata per generare un polinomio random di grado n, con x come simbolo";
+MakeInequation::usage = "Usata per generare una disequazione polinomiale di grado random (da 1 a 6)";
+MakeSystem::usage = "Usata per generare un sistema di disequazioni. numg è una variabile opzionale per settare il numero di disequazioni";
+SystemQuiz::usage = "Usata per generare graficamente un quiz contenente sistemi di disequazioni";
+InequationQuiz::usage = "Usata per generare graficamente un quiz basato su una disequazione";
 
 (* servono ad evitare problemi nella print delle equazioni *)
 x::usage = "";
@@ -35,21 +35,6 @@ Begin["`Private`"]; (* Comincia spazio privato *)
 Off[Solve::svars]; (* avvisa quando la Solve non riesce a risolvere, nel caso di sistema ad infinite soluzione *)
 Off[General::shdw]; (* warning di definizioni oscurate *)
 SetDirectory[NotebookDirectory[]]; (* imposto la cartella attuale come base in cui cercare i file *)
-
-(* 
- * disegna un sistema di 2 equazioni (non gestisce casi particolari)
- * @param eq1, eq2: equazioni come espressioni booleane, con variabili libere x e y
- *)
-drawSystem[eq1_,eq2_]:=
-	Module[{sol,intersections},
-		sol =Solve[Rationalize[eq1&&eq2],{x,y},Reals]; (* trova le intersezioni delle 2 equazioni *)
-		intersections={Red,PointSize[Large],Point[{x,y}/.sol]}; (* crea i punti che rappresentano le intersezioni *)
-		Show[ (* disegno il grafico *)
-			Plot[y/.Solve[eq1],{x,-20,20},PlotRange->{{-10,10},{-10,10}},ImageSize->Large,AspectRatio->1,PlotStyle->{Purple,Thick}], (* disegno eq1 *)
-			Plot[y/.Solve[eq2],{x,-20,20},PlotRange->{{-10,10},{-10,10}},ImageSize->Large, AspectRatio->1,PlotStyle->{Blue,Thick}], (* disegno eq2 *)
-			Graphics[{intersections}]  (* disegno le intersezioni *)
-		]
-	];
 
 GenericQuiz[diseq_, equation_, op1_, op2_, op3_, op4_, risp_]:= 
 	DynamicModule[{r1, r2}, 
@@ -195,44 +180,353 @@ polyFact[] :=
    Style["Fattorizzatore equazioni di grado n", Bold, 
     18], {{p, x^4 - 2, "Inserisci l'equazione da fattorizzare:"}}];
 
-(* FASE 2 --------------------------------------------------------------------------------- *)
 
-(* 
- * verifica le condizioni di esistenza per una figura
- * @param figura: stringa che indica il tipo di figura da verificare (Line, Parabole, Ellipse, Circle, Hyperbole o None)
- * @param a,b,c: coefficenti della figura
- * Ritorna al chiamante una stringa con l'errore riscontrato o la stringa "OK" in caso di successo
- *)
-checkCondition[figura_,a_,b_,c_]:= (
-	If[figura=="None", (* figura non definita: \[EGrave] un errore in quanto vogliamo avere 2 figure nel sistema *)
-		Return["Inserire due equazioni"]
-	];
-	If[a == Null || b==Null || c==Null, (* errore generico: campi dei coefficenti vuoti *)
-		Return["Errore: hai lasciato alcuni campi vuoti"]
-	];
-	If[figura == "Line"&&a==0&&b==0, (* Retta: almeno uno tra a e b deve essere diverso da 0 *)
-		Return["Retta: valori dei coefficienti non validi"]
-	];
-	If[figura == "Parabola"&&a==0, (* Parabola: a \[NotEqual] 0 *)
-		Return["Parabola: valore 'a' deve essere diverso da 0, altrimenti ottieni una retta"]
-	];
-	If[figura == "Ellipse"&&(a<=0||b<=0), (* Ellisse: coefficenti non negativi *)
-		Return["Ellisse: i valori dei coefficienti devono essere positivi"]
-	];
-	If[figura == "Ellipse"&&(a==b), (* Ellisse: coefficenti diversi tra loro (senn\[OGrave] collassa a circonferenza) *)
-		Return["Ellisse: devi avere 'a' diverso da 'b', altrimenti ottieni una circonferenza"]
-	];
-	If[figura == "Circle"&&(a==0&&b==0&&c==0), (* Circonferenza: almeno uno dei coefficenti deve essere non nullo *)
-		Return["Circonferenza: valori non ammessi, l'equazione rappresenta le rette bisettrici"]
-	];
-	If[figura=="Circle" && (-a/2)^2+(-b/2)^2-c<0, (* equazione di esistenza della Circonferenza *)
-		Return["Circonferenza: valori non ammessi, bisogna rispettare la condizione descritta nella teoria"]
-	];
-	If[figura == "Hyperbole"&&(a<=0||b<=0)|| figura == "Ellisse"&&a<=b, (* Iperbole: coefficienti non negativi *)
-		Return["Iperbole: i valori dei coefficienti devono essere positivi"]
-	];
-	Return ["OK"]; (* Nessun errore *)
-);
+(* Esercizi *)
+
+(*Equations: usata per mostrare a schermo un sistema con la parentesi graffa*)
+Equations /: MakeBoxes[Equations[eqs_], TraditionalForm] := 
+ RowBox[{"\[Piecewise]", 
+   GridBox[{MakeBoxes[#, TraditionalForm]} & /@ {##} & @@ eqs]}]
+
+(* MakePolynomial: usata per generare un polinomio random di grado n, con x come simbolo *)
+MakePolynomial[n_Integer, x_Symbol] :=
+ Module[
+  {z, c},
+  z = RandomChoice[{-1, 1}] RandomInteger[{1, 20}];
+  c = Table[RandomInteger[{-10, 10}], {n}];
+  FromDigits[
+   Reverse[
+    AppendTo[c, z]
+    ], x
+   ]
+  ]
+
+(* MakeInequation: usata per generare una disequazione polinomiale di grado random (da 1 a 6) *)
+MakeInequation[] := (
+  (* Inizializzazione variabili *)
+  flagTmp := True;
+  eqTmp = MakePolynomial[RandomInteger[{1, 6}], x]; disTmp = eqTmp > 0;
+
+  (* Loop finchè non viene generata una disequazione con soluzione esistente in R *)
+  While[flagTmp,
+   Clear[eqTmp]; Clear[disTmp];
+   eqTmp = MakePolynomial[RandomInteger[{1, 6}], x];
+   If[ Resolve[Exists[x, eqTmp == 0], Reals],   (*Se ha soluzione in R*)
+    If[RandomInteger[{1, 2}] == 1, 
+     disTmp = eqTmp > 0,
+     disTmp = eqTmp < 0
+     ];
+    flagTmp := False;
+    ]
+   ];
+  Return[List[eqTmp, disTmp]];
+  )
+
+(* MakeSystem: usata per generare un sistema di disequazioni. numg è una variabile opzionale per settare il numero di disequazioni *)
+MakeSystem[numg_: - 1] := (
+  (* Inizializzazione variabili *)
+  equs  = {}; disq = {x > -5 , x < 5}; systemOkFlag := True;
+  (* Check numero di disequazioni *)
+  numDis = IntegerPart[numg];
+  If[numDis < 1,
+   flagRandom := True;,
+   flagRandom := False;
+   ];
+
+  (* Loop finchè non viene generato un sistema di disequazioni con soluzione esistente in R *)
+  While[systemOkFlag,
+   If[flagRandom,
+    numDis = RandomInteger[{2, 5}];
+    ];
+   Clear[equs]; Clear[disq];
+   equs  = {}; disq = {x > -5 , x < 5};
+   (* Loop per generare ogni singola disequazione*)
+   i = 0;
+   While[i < numDis,
+    eqDisTmp = MakeInequation[];
+    equs = Append[equs, First[eqDisTmp]];
+    disq = Append[disq, Last[eqDisTmp]];
+    i++;
+    ];
+   If[ ToString[Head[Reduce[disq, Reals]]] == "Inequality", (* Se sistema ha soluzione esistente in R *)
+    systemOkFlag := False
+    ];
+   ];
+  Clear[numDis];
+  Return[List[equs, disq]]; 
+)
+
+(* SystemQuiz: usata per costruire un intero esercizio sui sistemi *)
+SystemQuiz[] := 
+  DynamicModule[
+   {r1, r2, equations, first, second, third, fourth, risp, 
+    systemPrint, SystemExercise}, 
+   
+   SystemExercise[] := (
+     Clear[systemsTmp];
+     systemsTmp = List[MakeSystem[]];	(* Genera il sistema considerato nell'esercizio *)
+     sqmi = 0;
+     While[sqmi < 3,
+      systemsTmp = Append[systemsTmp,  MakeSystem[1]]; (* Genera altri 3 sistemi per le risposte sbagliate *)
+      sqmi++;
+      ];
+     permut = RandomSample[{1, 2, 3, 4}];	(* Permutazione delle risposte *)
+     tmpList = Last[Extract[systemsTmp, 1]];
+     (* Stampa il sistema *)
+     systemPrint = Style[Equations[Take[tmpList, {3, Length[tmpList]}]] // TraditionalForm, 20];
+     
+     (* Genera il quiz graficamente *)
+     equations = First[Extract[systemsTmp, 1]];
+     first =  Reduce[Last[Extract[systemsTmp, Extract[permut, 1]]]];
+     second =  Reduce[Last[Extract[systemsTmp, Extract[permut, 2]]]];
+     third = Reduce[Last[Extract[systemsTmp, Extract[permut, 3]]]];
+     fourth = Reduce[Last[Extract[systemsTmp, Extract[permut, 4]]]];
+     risp = ToString[First[First[Position[permut, 1]]]];  
+     );
+   
+   SystemExercise[];
+   
+   Column [{
+     Row[{
+       Dynamic[
+    	(* Mostra i 4 Plot *)
+        Show[
+          
+          Plot[equations, {x, -100, 100}, 
+           PlotRange -> {{-3, 3}, {-10, 20}}, 
+           PlotLabel -> 
+            Style["Soluzione 1:  " <> 
+              StringReplace[
+               StringReplace[ToString[N[first]], "-5. < " -> ""], 
+               " < 5." -> ""], 24, Orange] , 
+           PlotLegends -> Placed["Expressions", Below], 
+           ImageSize -> Large],
+          
+          RegionPlot[first, {x, -5, 5}, {y, -100, 100}, 
+           PlotStyle -> {Green, Opacity[0.25]}, 
+           BoundaryStyle -> None]
+          ]
+         Show[
+          
+          Plot[equations, {x, -100, 100}, 
+           PlotRange -> {{-3, 3}, {-10, 20}}, 
+           PlotLabel -> 
+            Style["Soluzione 2:  " <> 
+              StringReplace[
+               StringReplace[ToString[N[second]], "-5. < " -> ""], 
+               " < 5." -> ""], 24, Black] , 
+           PlotLegends -> Placed["Expressions", Below], 
+           ImageSize -> Large],
+          
+          RegionPlot[second, {x, -5, 5}, {y, -100, 100}, 
+           PlotStyle -> {Green, Opacity[0.25]}, 
+           BoundaryStyle -> None]
+          ]
+         Show[
+          
+          Plot[equations, {x, -100, 100}, 
+           PlotRange -> {{-3, 3}, {-10, 20}}, 
+           PlotLabel -> 
+            Style["Soluzione 3:  " <> 
+              StringReplace[
+               StringReplace[ToString[N[third]], "-5. < " -> ""], 
+               " < 5." -> ""], 24, Green] , 
+           PlotLegends -> Placed["Expressions", Below], 
+           ImageSize -> Large],
+          
+          RegionPlot[third, {x, -5, 5}, {y, -100, 100}, 
+           PlotStyle -> {Green, Opacity[0.25]}, 
+           BoundaryStyle -> None]
+          ]
+         Show[
+          
+          Plot[equations, {x, -100, 100}, 
+           PlotRange -> {{-3, 3}, {-10, 20}}, 
+           PlotLabel -> 
+            Style["Soluzione 4:  " <> 
+              StringReplace[
+               StringReplace[ToString[N[fourth]], "-5. < " -> ""], 
+               " < 5." -> ""], 24, Red] , 
+           PlotLegends -> Placed["Expressions", Below], 
+           ImageSize -> Large],
+          
+          RegionPlot[fourth, {x, -5, 5}, {y, -100, 100}, 
+           PlotStyle -> {Green, Opacity[0.25]}, 
+           BoundaryStyle -> None]
+          ]
+        ],
+       
+       "\t\t\t",
+       
+       Dynamic[
+        (* Elenco risposte *)
+        elenco = { 
+          Table[RadioButtonBar[Dynamic[r1], {
+             Style["1", 24, Orange],
+             Style["2", 24, Black],
+             Style["3", 24, Green],
+             Style["4", 24, Red]
+             }, Appearance -> a], {a, {"Vertical"}}]
+          };
+        
+        (* Colonna delle risposte *)
+        Column[
+         Flatten[{
+           Style["Sistema:", 24, Black],
+           systemPrint,
+           {Text[
+             Style["\n\nSeleziona la soluzione corretta:", 24, 
+              Black]], 
+            elenco}, 
+           
+           Graphics[{ If[r2, Green, Red, Blue], Rectangle[{0, 0}]}, 
+            ImageSize -> {20, 20}], 
+           If[r2, "Giusto!", "Sbagliato!", ""], 
+           Button["Controlla",
+            r2 = (ToString[r1] === risp);
+            If[r2,
+             (* Then *)
+             CreateDialog[
+              Column[{
+                Style["  Esatto!  ", 32],
+                DefaultButton[Style["Continua", 20],
+                 Clear[r2];
+                 SystemExercise[];
+                 DialogReturn[];
+                 ],
+                DefaultButton[Style["Esci", 20],
+                 DialogReturn[];
+                 ]
+                }, ItemSize -> 20],
+              
+              Modal -> 
+               True,(*indica di aprire il dialog come schermata modale (pop-up)*)
+              
+              NotebookEventActions -> {"WindowClose" :> (SystemExercise[])}]
+             ]
+            ]}
+          ]
+         ]
+        ]
+       
+       }]
+     }]
+   ];
+
+(* InequationQuiz: usata per costruire un intero esercizio su una disequazione *)
+InequationQuiz[ ] := 
+  DynamicModule[
+   {r1, r2, inequation, first, second, third, fourth, risp, 
+    InequationExercise}, 
+   
+   (*Genera la disequazione*)
+   InequationExercise[] := (
+     Clear[inequationTmp];
+     inequationTmp = MakeSystem[1]; (* Genera la disequazione considerata nell'esercizio *)
+     sols = List[N[Reduce[Last[inequationTmp]], 2]];
+     iei = 0;
+     While[iei < 3,
+      sols = Append[sols,  N[Reduce[Last[MakeSystem[1]]], 2]];	(* Genera le altre risposte *)
+      iei++;
+      ];
+     permut2 = RandomSample[{1, 2, 3, 4}];	(* Permutazione delle risposte *)
+     
+     inequation = inequationTmp; 
+     first = ToString[Extract[sols, Extract[permut2, 1]]]; 
+     second = ToString[Extract[sols, Extract[permut2, 2]]]; 
+     third =  ToString[Extract[sols, Extract[permut2, 3]]] ;   
+     fourth = ToString[Extract[sols, Extract[permut2, 4]]]; 
+     risp = ToString[Extract[sols, 1]] ; 
+     );
+   
+   InequationExercise[];
+   
+   (* Genera il quiz graficamente *)
+   Column [{
+     Row[{
+       Dynamic[
+    	(* Mostra il Plot *)
+        Show[
+         Plot[First[inequation], {x, -100, 100}, 
+          PlotRange -> {{-3, 3}, {-20, 20}}, 
+          PlotLabel -> Style[Last[Last[inequation]], 24, Orange] , 
+          PlotLegends -> Placed["Expressions", Below], 
+          ImageSize -> Large],
+         RegionPlot[
+          Reduce[Last[inequation]], {x, -5, 5}, {y, -100, 100}, 
+          PlotStyle -> {Green, Opacity[0.25]}, BoundaryStyle -> None]
+         ]
+        ],
+       
+       "\t\t\t",
+       
+       Dynamic[
+   		(* Elenco risposte *)
+        elenco = { 
+          Table[
+           RadioButtonBar[Dynamic[r1],
+            {Style[
+              StringReplace[StringReplace[first, "-5.0 < " -> ""], 
+               " < 5.0" -> ""], 24, Black],
+             
+             Style[StringReplace[
+               StringReplace[second, "-5.0 < " -> ""], 
+               " < 5.0" -> ""], 24, Black],
+             
+             Style[StringReplace[
+               StringReplace[third, "-5.0 < " -> ""], " < 5.0" -> ""],
+               24, Black],
+             
+             Style[StringReplace[
+               StringReplace[fourth, "-5.0 < " -> ""], 
+               " < 5.0" -> ""], 24, Black]
+             }, Appearance -> a],
+           {a, {"Vertical"}}
+           ]};
+        
+    	(* Colonna delle risposte *)
+        Column[
+         Flatten[{
+           {Text[
+             Style["Seleziona l'intervallo corretto:", 24, Black]], 
+            elenco}, 
+           
+           Graphics[{ If[r2, Green, Red, Blue], Rectangle[{0, 0}]}, 
+            ImageSize -> {20, 20}], 
+           If[r2, "Giusto!", "Sbagliato!", ""], 
+           Button["Controlla",
+            
+            r2 = (ToString[r1] === 
+               StringReplace[StringReplace[risp, "-5.0 < " -> ""], 
+                " < 5.0" -> ""]);
+            If[r2,
+             (* Then *)
+             CreateDialog[	(*Finestra di Dialogo*)
+              Column[{
+                Style["  Esatto!  ", 32],
+                DefaultButton[Style["Continua", 20],
+                 Clear[r2];
+                 InequationExercise[];
+                 DialogReturn[];
+                 ],
+                DefaultButton[Style["Esci", 20],
+                 DialogReturn[];
+                 ]
+                }, ItemSize -> 20],
+              
+              Modal -> 
+               True,(*indica di aprire il dialog come schermata modale (pop-up)*)
+              
+              NotebookEventActions -> {"WindowClose" :> (InequationExercise[])}]
+             ]
+            ]}
+          ]
+         ]
+        ]
+       
+       }]
+     }]
+   ];
 
 End[]; (* Fine spazio privato *)
 Protect["Progetto`*"] (* protegge i nomi del package *)

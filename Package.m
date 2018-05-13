@@ -102,6 +102,98 @@ GraphicalMethodExample[] := (
     Initialization :> (a = 1) 
     ]
    );
+   
+   
+DrawTwoEquationsSystem[] := (
+   Manipulate[
+    
+    With[{p = 
+       v x^8 + u x^7 + s x^6 + a x^5 + b x^4 + c x^3 + d x^2 + e x + 
+        f, z = w x^8 + m x^7 + n x^6 + o x^5 + i x^4 + r x^3 + 
+        h x^2 + t x + j},
+     	TwoEquationsSystem[dis1, dis2, v, u, s, a, b, c, d, e, f, w, m, 
+      n, o, i, r, h, t, j]],
+    		Style["Prima equazione", Bold, 14],
+    		{dis1, {">", "<", ">=0", "<=0"}},
+    		{{v, 0, "Coefficiente x^8"}, InputField, ImageSize -> Small},
+    		{{u, 0, "Coefficiente x^7"}, InputField, ImageSize -> Small},
+    		{{s, 0, "Coefficiente x^6"}, InputField, ImageSize -> Small},
+    		{{a, 0, "Coefficiente x^5"}, InputField, ImageSize -> Small},
+    		{{b, 0, "Coefficiente x^4"}, InputField, ImageSize -> Small},
+    		{{c, 4, "Coefficiente x^3"}, InputField, ImageSize -> Small},
+    		{{d, 0, "Coefficiente x^2"}, InputField, ImageSize -> Small},
+    		{{e, 0, "Coefficiente x"}, InputField, ImageSize -> Small},
+    		{{f, 0, "Termine noto"}, InputField, ImageSize -> Small},
+    		Style["Seconda equazione", Bold, 14],
+    		{dis2 , {">", "<", ">=0", "<=0"}},
+    		{{w, 0, "Coefficiente x^8"}, InputField, ImageSize -> Small},
+    		{{m, 0, "Coefficiente x^7"}, InputField, ImageSize -> Small},
+    		{{n, 0, "Coefficiente x^6"}, InputField, ImageSize -> Small},
+    		{{o, 0, "Coefficiente x^5"}, InputField, ImageSize -> Small},
+    		{{i, 1, "Coefficiente x^4"}, InputField, ImageSize -> Small},
+    		{{r, 0, "Coefficiente x^3"}, InputField, ImageSize -> Small},
+    		{{h, -9, "Coefficiente x^2"}, InputField, ImageSize -> Small},
+    		{{t, 0, "Coefficiente x"}, InputField, ImageSize -> Small},
+    		{{j, 0, "Termine noto"}, InputField, ImageSize -> Small}]);
+
+
+
+TwoEquationsSystem[dis1_, dis2_ , v_, u_, s_, a_, b_, c_, d_, e_, f_, 
+   w_, m_, n_, o_, i_, r_, h_, t_, j_] := (
+   If[dis1 == ">", 
+    p = v x^8 + u x^7 + s x^6 + a x^5 + b x^4 + c x^3 + d x^2 + e x + 
+        f > 0;];
+   If[dis1 == "<", 
+    p = v x^8 + u x^7 + s x^6 + a x^5 + b x^4 + c x^3 + d x^2 + e x + 
+        f < 0;];
+   If[dis1 == ">=0", 
+    p = v x^8 + u x^7 + s x^6 + a x^5 + b x^4 + c x^3 + d x^2 + e x + 
+        f >= 0;];
+   If[dis1 == "<=0", 
+    p = v x^8 + u x^7 + s x^6 + a x^5 + b x^4 + c x^3 + d x^2 + e x + 
+        f <= 0;];
+   If[dis2 == ">", 
+    z = w x^8 + m x^7 + n x^6 + o x^5 + i x^4 + r x^3 + h x^2 + t x + 
+        j > 0;];
+   If[dis2 == ">=0", 
+    z = w x^8 + m x^7 + n x^6 + o x^5 + i x^4 + r x^3 + h x^2 + t x + 
+        j >= 0;];
+   If[dis2 == "<", 
+    z = w x^8 + m x^7 + n x^6 + o x^5 + i x^4 + r x^3 + h x^2 + t x + 
+        j < 0;];
+   If[dis2 == "<=0", 
+    z = w x^8 + m x^7 + n x^6 + o x^5 + i x^4 + r x^3 + h x^2 + t x + 
+        j <= 0;];
+   Show[
+    		Plot[{v x^8 + u x^7 + s x^6 + a x^5 + b x^4 + c x^3 + d x^2 + 
+       e x + f, 
+      w x^8 + m x^7 + n x^6 + o x^5 + i x^4 + r x^3 + h x^2 + t x + 
+       j}, {x, -20, 20}, ImageSize -> Large, 
+     PlotRange -> {{-20, 20}, {-20, 20}}, 
+     PlotLegends -> Placed[{p , z}, Above]], 
+    		RegionPlot[p, {x, -20, 20}, {y, -20, 20}, ImageSize -> Large],
+    		RegionPlot[z, {x, -20, 20}, {y, -20, 20}, ImageSize -> Large, 
+     PlotStyle -> {Orange, Opacity[0.2]}]
+    	]
+   );
+   
+realFactorization[poly_, x_] := 
+ Module[{n, nreal}, n = Exponent[poly, x];
+  nreal = CountRoots[poly, x];
+  Times @@ 
+   Join[Table[(x - ToRadicals@Root[poly & /. x -> #, i]), {i, nreal}],
+     Table[With[{r1 = ToRadicals@Root[poly & /. x -> #, i], 
+       r2 = ToRadicals@Root[poly & /. x -> #, i + 1]}, (x^2 - 
+        Expand[(r1 + r2)] x + Expand[r1 r2])], {i, nreal + 1, n, 2}]]]
+	
+polyFact[] := 
+  Manipulate[
+   Pane[Text[
+      Style[HoldForm[#] == Factor[#, Extension -> Sqrt[2]] &[p], 
+       14]], {500, 80}, ImageMargins -> 20, 
+     Alignment -> {Left, Center}] // TraditionalForm, 
+   Style["Fattorizzatore equazioni di grado n", Bold, 
+    18], {{p, x^4 - 2, "Inserisci l'equazione da fattorizzare:"}}];
 
 (* FASE 2 --------------------------------------------------------------------------------- *)
 
